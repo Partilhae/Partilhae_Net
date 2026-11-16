@@ -1,0 +1,6 @@
+@Partilhae_Net_HostAddress = http://localhost:5058
+
+GET {{Partilhae_Net_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

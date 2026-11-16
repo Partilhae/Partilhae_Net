@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+
+# Rider
+.idea/
+.vs/
+*.user
+*.suo
+
+# Segredos
+.env
+.env.*
+secrets.json
+appsettings.Development.json
+
+# Logs
+*.log
