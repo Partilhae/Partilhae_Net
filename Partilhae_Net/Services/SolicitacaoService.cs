@@ -9,10 +9,14 @@ namespace Partilhae_Net.Services;
 public class SolicitacaoService
 {
     private readonly AppDbContext _db;
+    private readonly IIdGenerator _idGenerator;
 
-    public SolicitacaoService(AppDbContext db)
+    public SolicitacaoService(
+        AppDbContext db,
+        IIdGenerator idGenerator)
     {
         _db = db;
+        _idGenerator = idGenerator;
     }
 
     public async Task<Solicitacao> CriarAsync(
@@ -50,32 +54,16 @@ public class SolicitacaoService
             }).ToList()
         };
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction =
+            await _db.Database.BeginTransactionAsync();
 
-        var connection = _db.Database.GetDbConnection();
-
-        await using (var command = connection.CreateCommand())
-        {
-            command.Transaction = _db.Database.CurrentTransaction!
-                .GetDbTransaction();
-
-            command.CommandText = "SELECT SEQ_SOLICITACAO.NEXTVAL FROM DUAL";
-
-            solicitacao.Id = Convert.ToInt64(
-                await command.ExecuteScalarAsync());
-        }
+        solicitacao.Id = await _idGenerator.ProximoIdAsync(
+            "SEQ_SOLICITACAO");
 
         foreach (var item in solicitacao.Itens)
         {
-            await using var command = connection.CreateCommand();
-
-            command.Transaction = _db.Database.CurrentTransaction!
-                .GetDbTransaction();
-
-            command.CommandText = "SELECT SEQ_ITEM.NEXTVAL FROM DUAL";
-
-            item.Id = Convert.ToInt64(
-                await command.ExecuteScalarAsync());
+            item.Id = await _idGenerator.ProximoIdAsync(
+                "SEQ_ITEM");
         }
 
         _db.Solicitacoes.Add(solicitacao);

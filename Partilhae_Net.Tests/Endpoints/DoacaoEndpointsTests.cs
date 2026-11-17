@@ -2,7 +2,7 @@
 using System.Net.Http.Json;
 using Partilhae_Net.Tests.Helpers;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Endpoints;
 
 public class DoacaoEndpointsTests : IClassFixture<TestApiFactory>
 {

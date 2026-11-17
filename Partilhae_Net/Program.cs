@@ -31,6 +31,10 @@ builder.Services.AddScoped<ConversaService>();
 
 builder.Services.AddScoped<DoacaoService>();
 
+builder.Services.AddScoped<IIdGenerator, OracleIdGenerator>();
+
+builder.Services.AddScoped<IChatPermissionService, OracleChatPermissionService>();
+
 // Configuração do OpenAPI
 builder.Services.AddOpenApi();
 

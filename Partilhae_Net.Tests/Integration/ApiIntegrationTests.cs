@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using Partilhae_Net.Tests.Helpers;
 using Xunit;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Integration;
 
 public class ApiIntegrationTests : IClassFixture<TestApiFactory>
 {

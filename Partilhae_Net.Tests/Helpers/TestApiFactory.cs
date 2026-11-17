@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Partilhae_Net.Data;
 using Microsoft.AspNetCore.Authentication;
+using Partilhae_Net.Services;
 
 namespace Partilhae_Net.Tests.Helpers;
 
@@ -41,6 +42,11 @@ public class TestApiFactory : WebApplicationFactory<Program>
                     TestAuthHandler.TestScheme, _ => { });
 
             services.AddAuthorization();
+            
+            services.RemoveAll<IIdGenerator>();
+            services.AddSingleton<IIdGenerator, FakeIdGenerator>();
+            services.RemoveAll<IChatPermissionService>();
+            services.AddSingleton<IChatPermissionService, FakeChatPermissionService>();
             
             // Remove a configuração original do Oracle.
             services.RemoveAll<DbContextOptions<AppDbContext>>();

@@ -2,7 +2,7 @@
 using Partilhae_Net.Services;
 using Partilhae_Net.Tests.Helpers;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Services;
 
 public class DoacaoServiceTests
 {
@@ -56,7 +56,10 @@ public class DoacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.CriarAsync(idConversa, idDoador));
@@ -69,7 +72,10 @@ public class DoacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => service.CriarAsync(999, 10));
@@ -84,7 +90,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.CriarAsync(1, 99));
@@ -99,7 +108,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CriarAsync(1, 10));
@@ -114,7 +126,10 @@ public class DoacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.AtualizarStatusAsync(id, 10, 20, "ENTREGUE"));
@@ -130,7 +145,10 @@ public class DoacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.AtualizarStatusAsync(1, 10, 20, status));
@@ -143,7 +161,10 @@ public class DoacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => service.AtualizarStatusAsync(999, 10, 20, "ENTREGUE"));
@@ -158,7 +179,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.AtualizarStatusAsync(1, 99, 20, "ENTREGUE"));
@@ -173,7 +197,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         var resultado = await service.AtualizarStatusAsync(
             1, 10, 20, " entregue ");
@@ -198,7 +225,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db, "ENTREGUE");
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.AtualizarStatusAsync(1, 10, 20, "ENTREGUE"));
@@ -213,7 +243,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db, "ENTREGUE");
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.AtualizarStatusAsync(1, 10, 99, "CONCLUIDA"));
@@ -228,7 +261,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.AtualizarStatusAsync(1, 10, 20, "CONCLUIDA"));
@@ -243,7 +279,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db, "ENTREGUE");
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         var resultado = await service.AtualizarStatusAsync(
             1, 10, 20, "CONCLUIDA");
@@ -276,7 +315,10 @@ public class DoacaoServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new DoacaoService(db);
+        var service = new DoacaoService(
+            db,
+            new FakeIdGenerator(),
+            new FakeChatPermissionService());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.AtualizarStatusAsync(1, 10, 20, status));

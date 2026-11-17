@@ -1,6 +1,6 @@
 ﻿using Partilhae_Net.Services;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Validators;
 
 public class DoacaoValidatorTests
 {

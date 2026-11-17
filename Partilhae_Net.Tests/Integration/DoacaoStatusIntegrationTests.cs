@@ -6,7 +6,7 @@ using Partilhae_Net.Data;
 using Partilhae_Net.Models;
 using Partilhae_Net.Tests.Helpers;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Integration;
 
 public class DoacaoStatusIntegrationTests
 {

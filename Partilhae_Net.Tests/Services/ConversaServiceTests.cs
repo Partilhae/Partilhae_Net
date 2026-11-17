@@ -3,7 +3,7 @@ using Partilhae_Net.Models;
 using Partilhae_Net.Services;
 using Partilhae_Net.Tests.Helpers;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Services;
 
 public class ConversaServiceTests
 {
@@ -44,7 +44,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.CriarOuBuscarAsync(idSolicitacao, idDoador));
@@ -57,7 +58,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => service.CriarOuBuscarAsync(999, 10));
@@ -72,7 +74,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.CriarOuBuscarAsync(1, 10);
 
@@ -94,7 +97,8 @@ public class ConversaServiceTests
         solicitacao.Status = "CONCLUIDA";
         await db.SaveChangesAsync();
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CriarOuBuscarAsync(1, 99));
@@ -110,7 +114,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.ListarPorUsuarioAsync(idUsuario, 10, 20));
@@ -125,7 +130,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.ListarPorUsuarioAsync(
             100, null, null);
@@ -142,7 +148,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.ListarPorUsuarioAsync(
             100, 10, null);
@@ -160,7 +167,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.ListarPorUsuarioAsync(
             100, null, 20);
@@ -178,7 +186,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.ListarPorUsuarioAsync(
             100, 99, 88);
@@ -193,7 +202,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => service.ListarMensagensAsync(999, 10, null));
@@ -208,7 +218,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.ListarMensagensAsync(1, 99, 88));
@@ -223,7 +234,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.ListarMensagensAsync(
             1, 10, null);
@@ -240,7 +252,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var resultado = await service.ListarMensagensAsync(
             1, null, 20);
@@ -258,7 +271,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.EnviarMensagemAsync(
@@ -275,7 +289,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.EnviarMensagemAsync(
@@ -289,7 +304,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         var conteudo = new string('A', 1001);
 
@@ -305,7 +321,8 @@ public class ConversaServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(
             () => service.EnviarMensagemAsync(
@@ -321,7 +338,8 @@ public class ConversaServiceTests
 
         await PrepararDadosAsync(db);
 
-        var service = new ConversaService(db);
+        var service = new ConversaService(
+            db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.EnviarMensagemAsync(

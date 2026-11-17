@@ -2,7 +2,7 @@
 using Partilhae_Net.Services;
 using Partilhae_Net.Tests.Helpers;
 
-namespace Partilhae_Net.Tests;
+namespace Partilhae_Net.Tests.Services;
 
 public class SolicitacaoServiceTests
 {
@@ -28,7 +28,7 @@ public class SolicitacaoServiceTests
         db.Solicitacoes.Add(solicitacao);
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.BuscarPorIdAsync(1);
 
@@ -46,7 +46,7 @@ public class SolicitacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.BuscarPorIdAsync(999);
 
@@ -86,7 +86,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.ListarAsync("ABERTA");
 
@@ -138,7 +138,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.ListarPorReceptorAsync(10);
 
@@ -169,7 +169,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.AtualizarStatusAsync(
             id: 1,
@@ -209,7 +209,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => service.AtualizarStatusAsync(
@@ -234,7 +234,7 @@ public class SolicitacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.AtualizarStatusAsync(999, 10, "CANCELADA");
 
@@ -265,7 +265,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.AtualizarStatusAsync(1, 10, novoStatus)
@@ -296,7 +296,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.AtualizarStatusAsync(1, 10, "CANCELADA")
@@ -335,7 +335,7 @@ public class SolicitacaoServiceTests
 
         await db.SaveChangesAsync();
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.ListarAsync(null);
 
@@ -349,7 +349,7 @@ public class SolicitacaoServiceTests
         await using var context = db;
         await using var conexao = connection;
 
-        var service = new SolicitacaoService(db);
+        var service = new SolicitacaoService(db, new FakeIdGenerator());
 
         var resultado = await service.ListarPorReceptorAsync(999);
 

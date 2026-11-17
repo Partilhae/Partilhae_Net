@@ -46,7 +46,13 @@ public static class SolicitacaoEndpoints
                         solicitacao.TipoAjuda,
                         solicitacao.Status,
                         solicitacao.DataCriacao,
-                        solicitacao.Itens
+                        Itens = solicitacao.Itens.Select(i => new
+                        {
+                            i.Id,
+                            i.Nome,
+                            i.Quantidade,
+                            i.Unidade
+                        })
                     });
             }
             catch (ArgumentException ex)

@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Partilhae_Net.Data;
 using Partilhae_Net.Models;
 
@@ -8,10 +7,14 @@ namespace Partilhae_Net.Services;
 public class ConversaService
 {
     private readonly AppDbContext _db;
+    private readonly IIdGenerator _idGenerator;
 
-    public ConversaService(AppDbContext db)
+    public ConversaService(
+        AppDbContext db,
+        IIdGenerator idGenerator)
     {
         _db = db;
+        _idGenerator = idGenerator;
     }
 
     public async Task<Conversa> CriarOuBuscarAsync(
@@ -45,16 +48,8 @@ public class ConversaService
         await using var transaction =
             await _db.Database.BeginTransactionAsync();
 
-        var connection = _db.Database.GetDbConnection();
-
-        await using var command = connection.CreateCommand();
-
-        command.Transaction = transaction.GetDbTransaction();
-        command.CommandText =
-            "SELECT SEQ_CONVERSA.NEXTVAL FROM DUAL";
-
-        var idConversa = Convert.ToInt64(
-            await command.ExecuteScalarAsync());
+        var idConversa = await _idGenerator.ProximoIdAsync(
+            "SEQ_CONVERSA");
 
         var conversa = new Conversa
         {
@@ -151,16 +146,8 @@ public class ConversaService
         await using var transaction =
             await _db.Database.BeginTransactionAsync();
 
-        var connection = _db.Database.GetDbConnection();
-
-        await using var command = connection.CreateCommand();
-
-        command.Transaction = transaction.GetDbTransaction();
-        command.CommandText =
-            "SELECT SEQ_MENSAGEM.NEXTVAL FROM DUAL";
-
-        var idMensagem = Convert.ToInt64(
-            await command.ExecuteScalarAsync());
+        var idMensagem = await _idGenerator.ProximoIdAsync(
+            "SEQ_MENSAGEM");
 
         var mensagem = new Mensagem
         {

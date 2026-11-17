@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Partilhae_Net.Data;
 using Partilhae_Net.Models;
 
@@ -8,10 +7,17 @@ namespace Partilhae_Net.Services;
 public class DoacaoService
 {
     private readonly AppDbContext _db;
+    private readonly IIdGenerator _idGenerator;
+    private readonly IChatPermissionService _chatPermission;
 
-    public DoacaoService(AppDbContext db)
+    public DoacaoService(
+        AppDbContext db,
+        IIdGenerator idGenerator,
+        IChatPermissionService chatPermission)
     {
         _db = db;
+        _idGenerator = idGenerator;
+        _chatPermission = chatPermission;
     }
 
     public async Task<Doacao> CriarAsync(
@@ -52,29 +58,18 @@ public class DoacaoService
             throw new InvalidOperationException(
                 "Esta solicitação não está disponível.");
         
-        var chatLiberado = await _db.Database
-            .SqlQueryRaw<string>(
-                "SELECT pkg_doacao.fn_pode_conversar({0}) AS \"Value\" FROM DUAL",
-                idConversa)
-            .SingleAsync();
+        var chatLiberado = await _chatPermission
+            .PodeConversarAsync(idConversa);
 
-        if (chatLiberado != "S")
+        if (!chatLiberado)
             throw new InvalidOperationException(
                 "A conversa não está liberada para registrar uma doação.");
 
         await using var transaction =
             await _db.Database.BeginTransactionAsync();
 
-        var connection = _db.Database.GetDbConnection();
-
-        await using var command = connection.CreateCommand();
-
-        command.Transaction = transaction.GetDbTransaction();
-        command.CommandText =
-            "SELECT SEQ_DOACAO.NEXTVAL FROM DUAL";
-
-        var idDoacao = Convert.ToInt64(
-            await command.ExecuteScalarAsync());
+        var idDoacao = await _idGenerator.ProximoIdAsync(
+            "SEQ_DOACAO");
 
         var doacao = new Doacao
         {
