@@ -160,8 +160,7 @@ public class AppDbContext : DbContext
 
             e.Property(x => x.Id)
                 .HasColumnName("ID_DOACAO")
-                .HasDefaultValueSql("SEQ_DOACAO.NEXTVAL")
-                .ValueGeneratedOnAdd();
+                .ValueGeneratedNever();
 
             e.Property(x => x.IdConversa)
                 .HasColumnName("CONVERSA_ID_CONVERSA");

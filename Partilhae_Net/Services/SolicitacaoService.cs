@@ -24,13 +24,14 @@ public class SolicitacaoService
         if (tipoAjuda == "ESPECIFICO")
             tipoAjuda = "ESPECIFICA";
 
-        if (tipoAjuda != "ESPECIFICA" && tipoAjuda != "QUALQUER")
+        if (!SolicitacaoValidator.TipoAjudaValido(dto.TipoAjuda))
             throw new ArgumentException("Tipo de ajuda inválido.");
 
         if (string.IsNullOrWhiteSpace(dto.Titulo))
             throw new ArgumentException("O título é obrigatório.");
 
-        if (dto.Itens.Any(i => i.Quantidade <= 0))
+        if (dto.Itens.Any(i =>
+                !SolicitacaoValidator.QuantidadeValida(i.Quantidade)))
             throw new ArgumentException("A quantidade dos itens deve ser positiva.");
 
         var solicitacao = new Solicitacao
@@ -142,9 +143,14 @@ public class SolicitacaoService
             throw new ArgumentException(
                 "O receptor só pode cancelar a solicitação por esta rota.");
 
-        if (solicitacao.Status != "ABERTA")
+        if (!SolicitacaoValidator.PodeCancelar(
+                solicitacao.Status,
+                solicitacao.IdReceptor,
+                idReceptor))
+        {
             throw new InvalidOperationException(
                 "Somente solicitações abertas podem ser canceladas.");
+        }
 
         solicitacao.Status = novoStatus;
 

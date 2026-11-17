@@ -5,25 +5,41 @@ using Partilhae_Net.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("Oracle");
-
-if (string.IsNullOrWhiteSpace(connectionString))
+if (builder.Environment.IsEnvironment("Testing"))
 {
-    throw new InvalidOperationException("Conexão Oracle não configurada.");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlite("Data Source=:memory:"));
 }
+else
+{
+    var connectionString =
+        builder.Configuration.GetConnectionString("Oracle");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseOracle(connectionString));
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "Conexão Oracle não configurada.");
+    }
+
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseOracle(connectionString));
+}
 
 builder.Services.AddScoped<SolicitacaoService>();
 
 builder.Services.AddScoped<ConversaService>();
+
+builder.Services.AddScoped<DoacaoService>();
 
 // Configuração do OpenAPI
 builder.Services.AddOpenApi();
 
 // Construção da aplicação
 var app = builder.Build();
+
+app.UseAuthentication();
+
+app.UseAuthorization();
 
 // Documentação da API
 if (app.Environment.IsDevelopment())
@@ -69,4 +85,8 @@ app.MapSolicitacaoEndpoints();
 
 app.MapConversaEndpoints();
 
+app.MapDoacaoEndpoints();
+
 app.Run();
+
+public partial class Program { }
