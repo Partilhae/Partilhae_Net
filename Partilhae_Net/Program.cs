@@ -2,6 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Partilhae_Net.Data;
 using Partilhae_Net.Services;
 using Partilhae_Net.Endpoints;
+using Partilhae_Net.Security;
+using System.Threading.RateLimiting;
+using Microsoft.OpenApi;
+using Partilhae_Net.Middlewares;
+using Partilhae_Net.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,20 +42,121 @@ builder.Services.AddScoped<IIdGenerator, OracleIdGenerator>();
 
 builder.Services.AddScoped<IChatPermissionService, OracleChatPermissionService>();
 
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddPartilhaeJwt(
+        builder.Configuration["JWT_SECRET"]);
+}
+
+builder.Services.AddAuthorization();
+
 // Configuração do OpenAPI
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = "Partilhaê API";
+        document.Info.Version = "v1";
+        document.Info.Description =
+            "API de solicitações, conversas, mensagens e doações.";
+
+        document.Components ??= new OpenApiComponents();
+
+        document.Components.SecuritySchemes =
+            new Dictionary<string, IOpenApiSecurityScheme>
+            {
+                ["Bearer"] = new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description = "Informe o token JWT."
+                }
+            };
+
+        foreach (var path in document.Paths)
+        {
+            if (path.Key == "/" || path.Key.StartsWith("/health"))
+                continue;
+
+            foreach (var operation in path.Value.Operations!)
+            {
+                operation.Value.Security ??= [];
+
+                operation.Value.Security.Add(
+                    new OpenApiSecurityRequirement
+                    {
+                        [new OpenApiSecuritySchemeReference(
+                            "Bearer", document)] = []
+                    });
+            }
+        }
+
+        return Task.CompletedTask;
+    });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter =
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        {
+            var identificador =
+                context.User.FindFirst("idUsuario")?.Value
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "anonimo";
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                identificador,
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
+        });
+});
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddHealthChecks()
+    .AddCheck(
+        "api",
+        () => HealthCheckResult.Healthy("API funcionando."),
+        tags: new[] { "api" })
+    .AddCheck<DatabaseHealthCheck>(
+        "database",
+        tags: new[] { "db" });
 
 // Construção da aplicação
 var app = builder.Build();
 
 app.UseAuthentication();
 
+app.UseRateLimiter();
+
 app.UseAuthorization();
+
+app.UseMiddleware<IdempotencyMiddleware>();
 
 // Documentação da API
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint(
+            "/openapi/v1.json",
+            "Partilhaê API v1");
+
+        options.RoutePrefix = "swagger";
+        options.DocumentTitle = "Partilhaê API";
+    });
 }
 
 if (!app.Environment.IsDevelopment())
@@ -63,26 +171,16 @@ app.MapGet("/", () => Results.Ok(new
     versao = "1.0"
 }));
 
-app.MapGet("/health/db", async (AppDbContext db, ILogger<Program> logger) =>
+app.MapHealthChecks("/health");
+
+app.MapHealthChecks("/health/api", new HealthCheckOptions
 {
-    try
-    {
-        var conectado = await db.Database.CanConnectAsync();
+    Predicate = check => check.Tags.Contains("api")
+});
 
-        return conectado
-            ? Results.Ok(new { mensagem = "Conexão com Oracle funcionando!" })
-            : Results.Problem(
-                "Não foi possível conectar ao Oracle. Verifique os logs.",
-                statusCode: 503);
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Falha na conexão com Oracle");
-
-        return Results.Problem(
-            "Erro ao acessar o banco de dados. Verifique os logs.",
-            statusCode: 503);
-    }
+app.MapHealthChecks("/health/db", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db")
 });
 
 app.MapSolicitacaoEndpoints();

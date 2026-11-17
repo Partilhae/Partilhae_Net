@@ -8,12 +8,27 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Partilhae_Net.Data;
 using Microsoft.AspNetCore.Authentication;
 using Partilhae_Net.Services;
+using Partilhae_Net.Security;
 
 namespace Partilhae_Net.Tests.Helpers;
 
 public class TestApiFactory : WebApplicationFactory<Program>
 {
     private SqliteConnection? _connection;
+    
+    private readonly bool _usarJwt;
+
+    public const string JwtSecretTeste =
+        "Partilhae-Chave-Ficticia-Exclusiva-Para-Testes-2026";
+
+    public TestApiFactory() : this(false)
+    {
+    }
+
+    protected TestApiFactory(bool usarJwt)
+    {
+        _usarJwt = usarJwt;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,14 +47,26 @@ public class TestApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = TestAuthHandler.TestScheme;
-                    options.DefaultChallengeScheme = TestAuthHandler.TestScheme;
-                    options.DefaultForbidScheme = TestAuthHandler.TestScheme;
-                })
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
-                    TestAuthHandler.TestScheme, _ => { });
+            if (_usarJwt)
+            {
+                services.AddPartilhaeJwt(JwtSecretTeste);
+            }
+            else
+            {
+                services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme =
+                            TestAuthHandler.TestScheme;
+
+                        options.DefaultChallengeScheme =
+                            TestAuthHandler.TestScheme;
+
+                        options.DefaultForbidScheme =
+                            TestAuthHandler.TestScheme;
+                    })
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                        TestAuthHandler.TestScheme, _ => { });
+            }
 
             services.AddAuthorization();
             
