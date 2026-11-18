@@ -177,20 +177,17 @@ app.UseAuthorization();
 app.UseMiddleware<IdempotencyMiddleware>();
 
 // Documentação da API
-if (app.Environment.IsDevelopment())
+app.MapOpenApi();
+
+app.UseSwaggerUI(options =>
 {
-    app.MapOpenApi();
+    options.SwaggerEndpoint(
+        "/openapi/v1.json",
+        "Partilhaê API v1");
 
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint(
-            "/openapi/v1.json",
-            "Partilhaê API v1");
-
-        options.RoutePrefix = "swagger";
-        options.DocumentTitle = "Partilhaê API";
-    });
-}
+    options.RoutePrefix = "swagger";
+    options.DocumentTitle = "Partilhaê API";
+});
 
 if (!app.Environment.IsDevelopment())
 {

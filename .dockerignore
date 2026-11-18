@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/TestResults/
+**/appsettings.Development.json
+**/secrets.json
+**/.env
+**/.env.*
+.git/
+.idea/
+.vs/
+Partilhae_Net.Tests/
