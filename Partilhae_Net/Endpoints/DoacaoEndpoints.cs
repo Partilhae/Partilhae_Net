@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Partilhae_Net.Data;
 using Partilhae_Net.DTOs;
+using Partilhae_Net.Models;
 using Partilhae_Net.Services;
 
 namespace Partilhae_Net.Endpoints;
@@ -40,11 +41,13 @@ public static class DoacaoEndpoints
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { erro = ex.Message });
+                return Results.BadRequest(
+                    new ErroResponseDto(ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                return Results.NotFound(new { erro = ex.Message });
+                return Results.NotFound(
+                    new ErroResponseDto(ex.Message));
             }
             catch (UnauthorizedAccessException)
             {
@@ -52,9 +55,26 @@ public static class DoacaoEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.Conflict(new { erro = ex.Message });
+                return Results.Conflict(
+                    new ErroResponseDto(ex.Message));
             }
-        });
+        })
+        .WithSummary("Registrar doação")
+        .WithDescription(
+            "Permite que um doador autenticado registre uma doação " +
+            "a partir de uma conversa existente. " +
+            "A solicitação deve estar aberta e não pode haver " +
+            "outra doação vinculada à mesma conversa. " +
+            "Aceita Idempotency-Key para evitar duplicações.")
+        .Produces<DoacaoResponseDto>(
+            StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status429TooManyRequests);
 
         // Listar doações do doador
         grupo.MapGet("/doador/{idDoador:long}", async (
@@ -75,8 +95,19 @@ public static class DoacaoEndpoints
                 .OrderByDescending(d => d.DataCriacao)
                 .ToListAsync();
 
-            return Results.Ok(doacoes.Select(Resposta));
-        });
+            return Results.Ok(
+                doacoes.Select(Resposta).ToList());
+        })
+        .WithSummary("Listar doações do doador")
+        .WithDescription(
+            "Retorna as doações do doador autenticado, " +
+            "ordenadas da mais recente para a mais antiga. " +
+            "Não permite consultar doações de outro doador.")
+        .Produces<List<DoacaoResponseDto>>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status429TooManyRequests);
 
         // Consultar doação pela solicitação
         grupo.MapGet("/solicitacao/{idSolicitacao:long}", async (
@@ -112,10 +143,22 @@ public static class DoacaoEndpoints
 
             if (doacao is null)
                 return Results.NotFound(
-                    new { erro = "Doação não encontrada." });
+                    new ErroResponseDto("Doação não encontrada."));
 
             return Results.Ok(Resposta(doacao));
-        });
+        })
+        .WithSummary("Consultar doação pela solicitação")
+        .WithDescription(
+            "Retorna a doação mais recente vinculada à solicitação " +
+            "informada e pertencente ao usuário autenticado. " +
+            "Disponível para doadores e receptores envolvidos.")
+        .Produces<DoacaoResponseDto>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status429TooManyRequests);
 
         // Atualizar status da doação
         grupo.MapPatch("/{id:long}/status", async (
@@ -148,11 +191,13 @@ public static class DoacaoEndpoints
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { erro = ex.Message });
+                return Results.BadRequest(
+                    new ErroResponseDto(ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                return Results.NotFound(new { erro = ex.Message });
+                return Results.NotFound(
+                    new ErroResponseDto(ex.Message));
             }
             catch (UnauthorizedAccessException)
             {
@@ -160,15 +205,32 @@ public static class DoacaoEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.Conflict(new { erro = ex.Message });
+                return Results.Conflict(
+                    new ErroResponseDto(ex.Message));
             }
-        });
+        })
+        .WithSummary("Atualizar status da doação")
+        .WithDescription(
+            "Permite ao doador confirmar a entrega com o status ENTREGUE " +
+            "e ao receptor confirmar o recebimento com o status CONCLUIDA. " +
+            "Respeita as permissões dos participantes e a sequência " +
+            "de atualização dos status.")
+        .Produces<DoacaoResponseDto>(
+            StatusCodes.Status200OK)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status404NotFound)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status429TooManyRequests);
     }
 
-    private static object Resposta(Partilhae_Net.Models.Doacao d)
+    private static DoacaoResponseDto Resposta(Doacao d)
     {
-        return new
-        {
+        return new DoacaoResponseDto(
             d.Id,
             d.IdConversa,
             d.IdSolicitacao,
@@ -177,7 +239,6 @@ public static class DoacaoEndpoints
             d.DataCriacao,
             d.DataEntregueDoador,
             d.DataRecebidoReceptor,
-            d.DataEncerramentoChat
-        };
+            d.DataEncerramentoChat);
     }
 }

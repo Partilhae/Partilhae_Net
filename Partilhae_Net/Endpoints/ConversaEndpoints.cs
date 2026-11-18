@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Partilhae_Net.DTOs;
+using Partilhae_Net.Models;
 using Partilhae_Net.Services;
 
 namespace Partilhae_Net.Endpoints;
@@ -32,29 +33,39 @@ public static class ConversaEndpoints
                 var conversa = await service.CriarOuBuscarAsync(
                     dto.IdSolicitacao, idDoador);
 
-                return Results.Ok(new
-                {
-                    conversa.Id,
-                    conversa.IdSolicitacao,
-                    conversa.IdDoador,
-                    conversa.IdReceptor,
-                    conversa.DataCriacao
-                });
+                return Results.Ok(RespostaConversa(conversa));
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { erro = ex.Message });
+                return Results.BadRequest(
+                    new ErroResponseDto(ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                return Results.NotFound(new { erro = ex.Message });
+                return Results.NotFound(
+                    new ErroResponseDto(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
-                return Results.Conflict(new { erro = ex.Message });
+                return Results.Conflict(
+                    new ErroResponseDto(ex.Message));
             }
-        });
-        
+        })
+        .WithSummary("Criar ou buscar conversa")
+        .WithDescription(
+            "Permite que um doador autenticado inicie uma conversa " +
+            "relacionada a uma solicitação. Caso já exista uma conversa, " +
+            "retorna a conversa existente. Aceita Idempotency-Key.")
+        .Produces<ConversaResponseDto>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status429TooManyRequests);
+
         grupo.MapGet("/usuario/{idUsuario:long}", async (
             long idUsuario,
             ClaimsPrincipal usuario,
@@ -79,16 +90,20 @@ public static class ConversaEndpoints
             var conversas = await service.ListarPorUsuarioAsync(
                 idUsuario, idDoador, idReceptor);
 
-            return Results.Ok(conversas.Select(c => new
-            {
-                c.Id,
-                c.IdSolicitacao,
-                c.IdDoador,
-                c.IdReceptor,
-                c.DataCriacao
-            }));
-        });
-        
+            return Results.Ok(
+                conversas.Select(RespostaConversa).ToList());
+        })
+        .WithSummary("Listar conversas do usuário")
+        .WithDescription(
+            "Retorna as conversas do usuário autenticado, " +
+            "seja ele doador ou receptor. Não permite consultar " +
+            "as conversas de outro usuário.")
+        .Produces<List<ConversaResponseDto>>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status429TooManyRequests);
+
         grupo.MapGet("/{idConversa:long}/mensagens", async (
             long idConversa,
             ClaimsPrincipal usuario,
@@ -114,25 +129,32 @@ public static class ConversaEndpoints
                 var mensagens = await service.ListarMensagensAsync(
                     idConversa, idDoador, idReceptor);
 
-                return Results.Ok(mensagens.Select(m => new
-                {
-                    m.Id,
-                    m.IdConversa,
-                    m.IdRemetenteUsuario,
-                    m.Conteudo,
-                    m.DataEnvio
-                }));
+                return Results.Ok(
+                    mensagens.Select(RespostaMensagem).ToList());
             }
             catch (KeyNotFoundException ex)
             {
-                return Results.NotFound(new { erro = ex.Message });
+                return Results.NotFound(
+                    new ErroResponseDto(ex.Message));
             }
             catch (UnauthorizedAccessException)
             {
                 return Results.Forbid();
             }
-        });
-        
+        })
+        .WithSummary("Listar mensagens da conversa")
+        .WithDescription(
+            "Retorna o histórico de mensagens de uma conversa. " +
+            "Somente o doador e o receptor participantes " +
+            "podem acessar as mensagens.")
+        .Produces<List<MensagemResponseDto>>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status429TooManyRequests);
+
         grupo.MapPost("/{idConversa:long}/mensagens", async (
             long idConversa,
             EnviarMensagemDto dto,
@@ -172,27 +194,59 @@ public static class ConversaEndpoints
 
                 return Results.Created(
                     $"/conversas/{idConversa}/mensagens",
-                    new
-                    {
-                        mensagem.Id,
-                        mensagem.IdConversa,
-                        mensagem.IdRemetenteUsuario,
-                        mensagem.Conteudo,
-                        mensagem.DataEnvio
-                    });
+                    RespostaMensagem(mensagem));
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { erro = ex.Message });
+                return Results.BadRequest(
+                    new ErroResponseDto(ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                return Results.NotFound(new { erro = ex.Message });
+                return Results.NotFound(
+                    new ErroResponseDto(ex.Message));
             }
             catch (UnauthorizedAccessException)
             {
                 return Results.Forbid();
             }
-        });
+        })
+        .WithSummary("Enviar mensagem")
+        .WithDescription(
+            "Envia uma mensagem em uma conversa existente. " +
+            "Somente os participantes podem enviar mensagens. " +
+            "O conteúdo deve ter entre 1 e 1000 caracteres. " +
+            "Aceita Idempotency-Key para evitar mensagens duplicadas.")
+        .Produces<MensagemResponseDto>(
+            StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status429TooManyRequests);
+    }
+
+    private static ConversaResponseDto RespostaConversa(
+        Conversa c)
+    {
+        return new ConversaResponseDto(
+            c.Id,
+            c.IdSolicitacao,
+            c.IdDoador,
+            c.IdReceptor,
+            c.DataCriacao);
+    }
+
+    private static MensagemResponseDto RespostaMensagem(
+        Mensagem m)
+    {
+        return new MensagemResponseDto(
+            m.Id,
+            m.IdConversa,
+            m.IdRemetenteUsuario,
+            m.Conteudo,
+            m.DataEnvio);
     }
 }

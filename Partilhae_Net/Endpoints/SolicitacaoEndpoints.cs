@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Partilhae_Net.DTOs;
+using Partilhae_Net.Models;
 using Partilhae_Net.Services;
 
 namespace Partilhae_Net.Endpoints;
@@ -38,56 +39,44 @@ public static class SolicitacaoEndpoints
 
                 return Results.Created(
                     $"/solicitacoes/{solicitacao.Id}",
-                    new
-                    {
-                        solicitacao.Id,
-                        solicitacao.Titulo,
-                        solicitacao.Descricao,
-                        solicitacao.TipoAjuda,
-                        solicitacao.Status,
-                        solicitacao.DataCriacao,
-                        Itens = solicitacao.Itens.Select(i => new
-                        {
-                            i.Id,
-                            i.Nome,
-                            i.Quantidade,
-                            i.Unidade
-                        })
-                    });
+                    RespostaResumida(solicitacao));
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new
-                {
-                    erro = ex.Message
-                });
+                return Results.BadRequest(
+                    new ErroResponseDto(ex.Message));
             }
-        });
-        
+        })
+        .WithSummary("Criar solicitação")
+        .WithDescription(
+            "Cria uma nova solicitação de ajuda. " +
+            "Disponível somente para receptores autenticados. " +
+            "Aceita Idempotency-Key para evitar duplicações.")
+        .Produces<SolicitacaoResumidaResponseDto>(
+            StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status429TooManyRequests);
+
         grupo.MapGet("/", async (
             string? status,
             SolicitacaoService service) =>
         {
             var solicitacoes = await service.ListarAsync(status);
 
-            return Results.Ok(solicitacoes.Select(s => new
-            {
-                s.Id,
-                s.IdReceptor,
-                s.Titulo,
-                s.Descricao,
-                s.TipoAjuda,
-                s.Status,
-                s.DataCriacao,
-                Itens = s.Itens.Select(i => new
-                {
-                    i.Id,
-                    i.Nome,
-                    i.Quantidade,
-                    i.Unidade
-                })
-            }));
-        });
+            return Results.Ok(
+                solicitacoes.Select(Resposta).ToList());
+        })
+        .WithSummary("Listar solicitações")
+        .WithDescription(
+            "Lista as solicitações cadastradas. " +
+            "Permite filtrar pelo parâmetro opcional status.")
+        .Produces<List<SolicitacaoResponseDto>>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status429TooManyRequests);
 
         grupo.MapGet("/{id:long}", async (
             long id,
@@ -98,24 +87,17 @@ public static class SolicitacaoEndpoints
             if (s is null)
                 return Results.NotFound();
 
-            return Results.Ok(new
-            {
-                s.Id,
-                s.IdReceptor,
-                s.Titulo,
-                s.Descricao,
-                s.TipoAjuda,
-                s.Status,
-                s.DataCriacao,
-                Itens = s.Itens.Select(i => new
-                {
-                    i.Id,
-                    i.Nome,
-                    i.Quantidade,
-                    i.Unidade
-                })
-            });
-        });
+            return Results.Ok(Resposta(s));
+        })
+        .WithSummary("Buscar solicitação por ID")
+        .WithDescription(
+            "Retorna os detalhes de uma solicitação, " +
+            "incluindo seus respectivos itens.")
+        .Produces<SolicitacaoResponseDto>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status429TooManyRequests);
 
         grupo.MapGet("/receptor/{idReceptor:long}", async (
             long idReceptor,
@@ -133,24 +115,19 @@ public static class SolicitacaoEndpoints
             var solicitacoes =
                 await service.ListarPorReceptorAsync(idReceptor);
 
-            return Results.Ok(solicitacoes.Select(s => new
-            {
-                s.Id,
-                s.Titulo,
-                s.Descricao,
-                s.TipoAjuda,
-                s.Status,
-                s.DataCriacao,
-                Itens = s.Itens.Select(i => new
-                {
-                    i.Id,
-                    i.Nome,
-                    i.Quantidade,
-                    i.Unidade
-                })
-            }));
-        });
-        
+            return Results.Ok(
+                solicitacoes.Select(RespostaResumida).ToList());
+        })
+        .WithSummary("Listar solicitações do receptor")
+        .WithDescription(
+            "Retorna as solicitações pertencentes ao receptor autenticado. " +
+            "Não permite consultar as solicitações de outro receptor.")
+        .Produces<List<SolicitacaoResumidaResponseDto>>(
+            StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status429TooManyRequests);
+
         grupo.MapPatch("/{id:long}/status", async (
             long id,
             AtualizarStatusSolicitacaoDto dto,
@@ -174,11 +151,10 @@ public static class SolicitacaoEndpoints
                 if (solicitacao is null)
                     return Results.NotFound();
 
-                return Results.Ok(new
-                {
-                    solicitacao.Id,
-                    solicitacao.Status
-                });
+                return Results.Ok(
+                    new StatusSolicitacaoResponseDto(
+                        solicitacao.Id,
+                        solicitacao.Status));
             }
             catch (UnauthorizedAccessException)
             {
@@ -186,12 +162,67 @@ public static class SolicitacaoEndpoints
             }
             catch (ArgumentException ex)
             {
-                return Results.BadRequest(new { erro = ex.Message });
+                return Results.BadRequest(
+                    new ErroResponseDto(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
-                return Results.Conflict(new { erro = ex.Message });
+                return Results.Conflict(
+                    new ErroResponseDto(ex.Message));
             }
-        });
+        })
+        .WithSummary("Atualizar status da solicitação")
+        .WithDescription(
+            "Permite ao receptor responsável cancelar uma solicitação aberta, " +
+            "informando o status CANCELADA.")
+        .Produces<StatusSolicitacaoResponseDto>(
+            StatusCodes.Status200OK)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces<ErroResponseDto>(
+            StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status429TooManyRequests);
+    }
+
+    private static SolicitacaoResponseDto Resposta(
+        Solicitacao s)
+    {
+        return new SolicitacaoResponseDto(
+            s.Id,
+            s.IdReceptor,
+            s.Titulo,
+            s.Descricao,
+            s.TipoAjuda,
+            s.Status,
+            s.DataCriacao,
+            RespostaItens(s));
+    }
+
+    private static SolicitacaoResumidaResponseDto RespostaResumida(
+        Solicitacao s)
+    {
+        return new SolicitacaoResumidaResponseDto(
+            s.Id,
+            s.Titulo,
+            s.Descricao,
+            s.TipoAjuda,
+            s.Status,
+            s.DataCriacao,
+            RespostaItens(s));
+    }
+
+    private static List<ItemSolicitacaoResponseDto> RespostaItens(
+        Solicitacao s)
+    {
+        return s.Itens.Select(i =>
+            new ItemSolicitacaoResponseDto(
+                i.Id,
+                i.Nome,
+                i.Quantidade,
+                i.Unidade))
+            .ToList();
     }
 }
