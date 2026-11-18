@@ -57,7 +57,7 @@ public class DoacaoService
         if (solicitacao.Status != "ABERTA")
             throw new InvalidOperationException(
                 "Esta solicitação não está disponível.");
-        
+
         var chatLiberado = await _chatPermission
             .PodeConversarAsync(idConversa);
 
@@ -90,7 +90,34 @@ public class DoacaoService
 
         return doacao;
     }
-    
+
+    public async Task<List<Doacao>> ListarPorDoadorAsync(
+        long idDoador)
+    {
+        return await _db.Doacoes
+            .AsNoTracking()
+            .Where(d => d.IdDoador == idDoador)
+            .OrderByDescending(d => d.DataCriacao)
+            .ToListAsync();
+    }
+
+    public async Task<Doacao?> BuscarPorSolicitacaoAsync(
+        long idSolicitacao,
+        long? idDoador,
+        long? idReceptor)
+    {
+        return await _db.Doacoes
+            .AsNoTracking()
+            .Where(d => d.IdSolicitacao == idSolicitacao)
+            .Where(d =>
+                (idDoador.HasValue &&
+                 d.IdDoador == idDoador.Value) ||
+                (idReceptor.HasValue &&
+                 d.Conversa.IdReceptor == idReceptor.Value))
+            .OrderByDescending(d => d.DataCriacao)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Doacao> AtualizarStatusAsync(
         long idDoacao,
         long? idDoador,
@@ -146,9 +173,10 @@ public class DoacaoService
             doacao.Status = "CONCLUIDA";
             doacao.DataRecebidoReceptor = agora;
             doacao.DataEncerramentoChat = agora;
-            
+
             var solicitacao = await _db.Solicitacoes
-                .FirstOrDefaultAsync(s => s.Id == doacao.IdSolicitacao);
+                .FirstOrDefaultAsync(s =>
+                    s.Id == doacao.IdSolicitacao);
 
             if (solicitacao is null)
                 throw new KeyNotFoundException(

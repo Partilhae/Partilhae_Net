@@ -1,6 +1,4 @@
 ﻿using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
-using Partilhae_Net.Data;
 using Partilhae_Net.DTOs;
 using Partilhae_Net.Models;
 using Partilhae_Net.Services;
@@ -80,7 +78,7 @@ public static class DoacaoEndpoints
         grupo.MapGet("/doador/{idDoador:long}", async (
             long idDoador,
             ClaimsPrincipal usuario,
-            AppDbContext db) =>
+            DoacaoService service) =>
         {
             if (usuario.FindFirst("role")?.Value != "ROLE_DOADOR" ||
                 !long.TryParse(
@@ -89,11 +87,8 @@ public static class DoacaoEndpoints
                 idAutenticado != idDoador)
                 return Results.Forbid();
 
-            var doacoes = await db.Doacoes
-                .AsNoTracking()
-                .Where(d => d.IdDoador == idDoador)
-                .OrderByDescending(d => d.DataCriacao)
-                .ToListAsync();
+            var doacoes =
+                await service.ListarPorDoadorAsync(idDoador);
 
             return Results.Ok(
                 doacoes.Select(Resposta).ToList());
@@ -113,7 +108,7 @@ public static class DoacaoEndpoints
         grupo.MapGet("/solicitacao/{idSolicitacao:long}", async (
             long idSolicitacao,
             ClaimsPrincipal usuario,
-            AppDbContext db) =>
+            DoacaoService service) =>
         {
             var role = usuario.FindFirst("role")?.Value;
 
@@ -130,16 +125,8 @@ public static class DoacaoEndpoints
             if (idDoador is null && idReceptor is null)
                 return Results.Forbid();
 
-            var doacao = await db.Doacoes
-                .AsNoTracking()
-                .Where(d => d.IdSolicitacao == idSolicitacao)
-                .Where(d =>
-                    (idDoador.HasValue &&
-                     d.IdDoador == idDoador.Value) ||
-                    (idReceptor.HasValue &&
-                     d.Conversa.IdReceptor == idReceptor.Value))
-                .OrderByDescending(d => d.DataCriacao)
-                .FirstOrDefaultAsync();
+            var doacao = await service.BuscarPorSolicitacaoAsync(
+                idSolicitacao, idDoador, idReceptor);
 
             if (doacao is null)
                 return Results.NotFound(

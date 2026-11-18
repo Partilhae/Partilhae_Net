@@ -12,6 +12,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configuração do banco de dados
 if (builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddDbContext<AppDbContext>(options =>
@@ -32,16 +33,15 @@ else
         options.UseOracle(connectionString));
 }
 
+// Registro dos serviços
 builder.Services.AddScoped<SolicitacaoService>();
-
 builder.Services.AddScoped<ConversaService>();
-
 builder.Services.AddScoped<DoacaoService>();
 
 builder.Services.AddScoped<IIdGenerator, OracleIdGenerator>();
-
 builder.Services.AddScoped<IChatPermissionService, OracleChatPermissionService>();
 
+// Autenticação e autorização
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddPartilhaeJwt(
@@ -94,8 +94,39 @@ builder.Services.AddOpenApi(options =>
 
         return Task.CompletedTask;
     });
+
+    // Documentação do header de idempotência nos endpoints POST
+    options.AddOperationTransformer(
+        (operation, context, cancellationToken) =>
+        {
+            if (context.Description.HttpMethod == "POST")
+            {
+                operation.Parameters ??= [];
+
+                operation.Parameters.Add(new OpenApiParameter
+                {
+                    Name = "Idempotency-Key",
+                    In = ParameterLocation.Header,
+                    Required = false,
+                    Description =
+                        "Chave única para evitar operações duplicadas. " +
+                        "Reutilize a mesma chave ao repetir uma requisição " +
+                        "com os mesmos dados. Respostas bem-sucedidas " +
+                        "são armazenadas por 30 minutos.",
+                    Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.String,
+                        MinLength = 1,
+                        MaxLength = 100
+                    }
+                });
+            }
+
+            return Task.CompletedTask;
+        });
 });
 
+// Configuração do Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode =
@@ -121,8 +152,10 @@ builder.Services.AddRateLimiter(options =>
         });
 });
 
+// Cache utilizado pela idempotência
 builder.Services.AddMemoryCache();
 
+// Configuração dos Health Checks
 builder.Services.AddHealthChecks()
     .AddCheck(
         "api",
@@ -171,6 +204,7 @@ app.MapGet("/", () => Results.Ok(new
     versao = "1.0"
 }));
 
+// Endpoints de Health Check
 app.MapHealthChecks("/health");
 
 app.MapHealthChecks("/health/api", new HealthCheckOptions
@@ -183,10 +217,9 @@ app.MapHealthChecks("/health/db", new HealthCheckOptions
     Predicate = check => check.Tags.Contains("db")
 });
 
+// Endpoints de negócio
 app.MapSolicitacaoEndpoints();
-
 app.MapConversaEndpoints();
-
 app.MapDoacaoEndpoints();
 
 app.Run();
