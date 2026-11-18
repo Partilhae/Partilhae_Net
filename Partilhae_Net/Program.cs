@@ -60,6 +60,14 @@ builder.Services.AddOpenApi(options =>
         document.Info.Description =
             "API de solicitações, conversas, mensagens e doações.";
 
+        document.Servers = new List<OpenApiServer>
+        {
+            new OpenApiServer
+            {
+                Url = "/"
+            }
+        };
+        
         document.Components ??= new OpenApiComponents();
 
         document.Components.SecuritySchemes =
