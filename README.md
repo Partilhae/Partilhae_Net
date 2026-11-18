@@ -52,7 +52,7 @@ para integração com o aplicativo Mobile.
 
 | Aplicação online | \[API Partilhaê](https://partilhae-net.onrender.com) |
 
-| Documentação | \[Swagger](https://partilhae-net.onrender.com/swagger) |
+| Documentação | \[Swagger](https://partilhae-net.onrender.com/swagger/index.html) |
 
 | Health Check | \[Health](https://partilhae-net.onrender.com/health) |
 
