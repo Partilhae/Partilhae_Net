@@ -27,6 +27,7 @@
 - [Como executar localmente](#como-executar-localmente)
 - [Deploy](#deploy)
 - [Projeto acadêmico](#projeto-acadêmico)
+- [Uso de Inteligência Artificial](#uso-de-inteligência-artificial)
 
 ## Sobre o projeto
 
@@ -71,6 +72,8 @@ A API .NET é responsável pelo gerenciamento de solicitações, conversas, mens
 - Proteção contra requisições duplicadas.
 - Limitação de requisições.
 - Monitoramento da saúde da aplicação.
+- Bloqueio do envio de mensagens após a conclusão da doação.
+- Compartilhamento do banco Oracle com a API Java.
 
 ## Arquitetura
 
@@ -96,6 +99,16 @@ flowchart TD
     EF --> Oracle
     Java --> Oracle
 ```
+
+### Integração com o banco de dados
+
+As APIs Java e .NET utilizam o mesmo banco Oracle, garantindo o compartilhamento dos dados entre os serviços.
+
+A API .NET utiliza Entity Framework Core e consultas SQL parametrizadas para operações específicas do Oracle.
+
+O serviço `OracleChatPermissionService` verifica as permissões de conversa considerando o status das contas dos participantes, da solicitação e da doação, sem depender de packages PL/SQL.
+
+O envio de novas mensagens é bloqueado após o encerramento da doação.
 
 ## Estrutura do projeto
 
@@ -234,8 +247,8 @@ Os testes utilizam SQLite em memória e implementações simuladas para funciona
 | Testes aprovados | 249 |
 | Testes com falha | 0 |
 | Taxa de aprovação | 100% |
-| Cobertura de linhas | 89,76% |
-| Cobertura de branches | 75,41% |
+| Cobertura de linhas | 88,89% |
+| Cobertura de branches | 75,56% |
 
 ### Executar os testes
 
@@ -248,6 +261,29 @@ dotnet test
 ```bash
 dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 ```
+
+### Validação manual com Oracle
+
+Além dos testes automatizados, foi realizada uma validação manual pelo Swagger utilizando o banco Oracle compartilhado e tokens JWT gerados pela API Java.
+
+| Cenário | Resultado |
+|---|---|
+| Conexão com o Oracle | Aprovado |
+| Autenticação com JWT do Java | Aprovado |
+| Criação de solicitação | Aprovado |
+| Criação de conversa | Aprovado |
+| Envio e consulta de mensagens | Aprovado |
+| Registro de doação | Aprovado |
+| Confirmação de entrega | Aprovado |
+| Confirmação de recebimento | Aprovado |
+| Atualização do status da solicitação | Aprovado |
+| Bloqueio do chat após conclusão | Aprovado (HTTP 403) |
+
+O fluxo completo da doação foi validado, respeitando a sequência de status:
+
+`EM_ANDAMENTO → ENTREGUE → CONCLUIDA`
+
+A integração foi validada localmente sem alterações na estrutura do banco de dados ou no código da API Java.
 
 ## Como executar localmente
 
@@ -313,9 +349,25 @@ As credenciais são configuradas por meio das variáveis de ambiente `Connection
 
 A aplicação utiliza o plano gratuito do Render, que suspende o serviço após 15 minutos de inatividade. Dessa forma, a primeira requisição após esse período pode demorar cerca de 1 minuto para ser respondida.
 
-**Aplicação:** [https://partilhae-net.onrender.com](https://partilhae-net.onrender.com)
+**Aplicação:** https://partilhae-net.onrender.com
 
-**Swagger:** [https://partilhae-net.onrender.com/swagger/index.html](https://partilhae-net.onrender.com/swagger/index.html)
+**Swagger:** https://partilhae-net.onrender.com/swagger/index.html
+
+## Uso de Inteligência Artificial
+
+Durante o desenvolvimento do projeto, foi utilizado o ChatGPT (OpenAI) como ferramenta de apoio nas seguintes atividades:
+
+- Planejamento e organização da arquitetura da API.
+- Auxílio na implementação e revisão de código.
+- Identificação e correção de erros.
+- Elaboração de testes automatizados.
+- Análise dos relatórios de cobertura.
+- Apoio na configuração do deploy.
+- Organização e revisão da documentação.
+
+As sugestões geradas pela inteligência artificial foram analisadas, adaptadas e validadas pela equipe, por meio de testes automatizados e manuais.
+
+A inteligência artificial foi utilizada como ferramenta de apoio ao desenvolvimento, não substituindo a responsabilidade técnica dos integrantes.
 
 ## Projeto acadêmico
 
